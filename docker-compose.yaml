@@ -1,0 +1,43 @@
+version: '3.7'
+
+services:
+  torque-db:
+    image: mariadb:10.3
+    container_name: torque-db
+    restart: always
+    volumes:
+      - torque-data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TORQUE_USER: ${DB_USER}
+      TORQUE_PASS: ${DB_PASS}
+
+  torque:
+    image: cwadley/torque-docker
+    container_name: torque
+    depends_on:
+      - torque-db
+    restart: always
+    ports:
+      - 8000:80
+    volumes:
+      - ./initialize_db.sql:/init_db/initialize_db.sql:ro
+      - ./initialize_db.sh:/init_db/initialize_db.sh:ro
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      GMAPS_API_KEY: ${GMAPS_API_KEY}
+      AUTH_USERS: ${AUTH_USERS}
+      AUTH_PASSWORDS: ${AUTH_PASSWORDS}
+      TORQUE_ID: ${TORQUE_ID}
+      USE_FAHRENHEIT: ${USE_FAHRENHEIT}
+      USE_MILES: ${USE_MILES}
+      HIDE_EMPTY_VARIABLES: ${HIDE_EMPTY_VARIABLES}
+      SHOW_SESSION_LENGTH: ${SHOW_SESSION_LENGTH}
+      MIN_SESSION_SIZE: ${MIN_SESSION_SIZE}
+    command: ["-c", "/init_db/initialize_db.sh && /var/www/html/copy_creds.sh /var/www/html/creds.php && ./create_db_tables.sh && docker-php-entrypoint apache2-foreground"]
+
+volumes:
+  torque-data:
